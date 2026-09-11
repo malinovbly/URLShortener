@@ -5,6 +5,7 @@ import (
 	"crypto/rand"
 	"fmt"
 	"math/big"
+	"net"
 	"net/url"
 	"strings"
 )
@@ -69,6 +70,9 @@ func generateAlias() (string, error) {
 }
 
 func validateURL(originalURL string) error {
+	if len(originalURL) > 2048 {
+		return fmt.Errorf("%w: URL is too long (max 2048 chars)", ErrInvalidURL)
+	}
 	if originalURL == "" {
 		return fmt.Errorf("%w: URL cannot be empty", ErrInvalidURL)
 	}
@@ -82,8 +86,24 @@ func validateURL(originalURL string) error {
 		return fmt.Errorf("%w: unsupported URL scheme", ErrInvalidURL)
 	}
 
-	if u.Hostname() == "" {
+	host := u.Hostname()
+	if host == "" {
 		return fmt.Errorf("%w: URL must contain a host", ErrInvalidURL)
+	}
+
+	if ip := net.ParseIP(host); ip != nil {
+		if ip.IsLoopback() || ip.IsPrivate() || ip.IsUnspecified() {
+			return fmt.Errorf("%w: local or private IP addresses are not allowed", ErrInvalidURL)
+		}
+	} else {
+		if host == "localhost" {
+			return fmt.Errorf("%w: localhost is not allowed", ErrInvalidURL)
+		}
+
+		trimmedHost := strings.TrimSuffix(host, ".")
+		if !strings.Contains(trimmedHost, ".") {
+			return fmt.Errorf("%w: host must contain a top-level domain (e.g., .com)", ErrInvalidURL)
+		}
 	}
 
 	return nil

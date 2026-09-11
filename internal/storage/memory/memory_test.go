@@ -17,7 +17,7 @@ func TestStorage_SaveURL(t *testing.T) {
 		t.Fatalf("unexpected error: %v", err)
 	}
 	if savedAlias != alias {
-		t.Errorf("expected alias %q, got %q", alias, savedAlias)
+		t.Fatalf("expected alias %q, got %q", alias, savedAlias)
 	}
 
 	url, err := storage.GetURL(alias)
@@ -44,6 +44,7 @@ func TestStorage_SaveURL_ExistingAlias(t *testing.T) {
 	if err == nil {
 		t.Fatal("expected error, got nil")
 	}
+
 	if !errors.Is(err, storagePackage.ErrAliasAlreadyExists) {
 		t.Errorf("expected ErrAliasAlreadyExists, got %v", err)
 	}
@@ -68,6 +69,7 @@ func TestStorage_SaveURL_ExistingURL(t *testing.T) {
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
+
 	if savedAlias != alias1 {
 		t.Errorf("expected existing alias %q, got %q", alias1, savedAlias)
 	}
@@ -120,6 +122,7 @@ func TestStorage_GetAllURLs(t *testing.T) {
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
+
 	if len(urls) != 2 {
 		t.Errorf("expected 2 URLs, got %d", len(urls))
 	}
@@ -149,7 +152,6 @@ func TestStorage_GetAllURLs_ChangeMapValue(t *testing.T) {
 	}
 
 	urls[alias] = changedURL
-
 	urls, err = storage.GetAllURLs()
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
@@ -180,6 +182,7 @@ func TestStorage_GetAllURLs_DuplicatedURLs(t *testing.T) {
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
+
 	if len(urls) != 1 {
 		t.Errorf("expected 1 URL, got %d", len(urls))
 	}
