@@ -1,0 +1,133 @@
+package url
+
+import (
+	"URLShortener/internal/http/response"
+	servicePackage "URLShortener/internal/service"
+	"URLShortener/internal/storage/memory"
+	"URLShortener/internal/testutil"
+	"bytes"
+	"errors"
+	"fmt"
+	"net/http"
+	"net/http/httptest"
+	"strings"
+	"testing"
+)
+
+type mockService struct {
+	saveURL func(string) (string, error)
+}
+
+func (m *mockService) SaveURL(originalURL string) (string, error) {
+	return m.saveURL(originalURL)
+}
+
+func (m *mockService) GetAllURLs() (map[string]string, error) {
+	return nil, nil
+}
+
+func TestHandler_CreateURL_Valid(t *testing.T) {
+	storage := memory.NewStorage()
+	service := servicePackage.NewService(storage)
+
+	handler := NewHandler(service)
+
+	body := bytes.NewBufferString(`{"url":"https://google.com"}`)
+	request := httptest.NewRequest(http.MethodPost, "/url", body)
+	rr := httptest.NewRecorder()
+
+	handler.CreateURL(rr, request)
+
+	testutil.CheckStatusCode(t, rr, http.StatusCreated)
+	testutil.CheckContentType(t, rr, "application/json")
+
+	responseBody := testutil.DecodeJSON[CreateURLResponse](t, rr.Body)
+	if responseBody.Alias == "" {
+		t.Error("expected alias, got empty")
+	}
+}
+
+func TestHandler_CreateURL_InvalidJSON(t *testing.T) {
+	storage := memory.NewStorage()
+	service := servicePackage.NewService(storage)
+
+	handler := NewHandler(service)
+
+	body := strings.NewReader(`{"url":`)
+	request := httptest.NewRequest(http.MethodPost, "/url", body)
+	rr := httptest.NewRecorder()
+
+	handler.CreateURL(rr, request)
+
+	testutil.CheckStatusCode(t, rr, http.StatusBadRequest)
+	testutil.CheckContentType(t, rr, "application/json")
+
+	responseBody := testutil.DecodeJSON[response.ErrorResponse](t, rr.Body)
+	if responseBody.Error != response.ErrorInvalidRequestBody {
+		t.Errorf(
+			"expected error %q, got %q",
+			response.ErrorInvalidRequestBody,
+			responseBody.Error,
+		)
+	}
+}
+
+func TestHandler_CreateURL_InvalidURL(t *testing.T) {
+	mockService := &mockService{
+		saveURL: func(string) (string, error) {
+			return "", fmt.Errorf(
+				"validation failed: %w",
+				servicePackage.ErrInvalidURL,
+			)
+		},
+	}
+
+	handler := NewHandler(mockService)
+
+	body := bytes.NewBufferString(`{"url":"https://google.com"}`)
+	request := httptest.NewRequest(http.MethodPost, "/url", body)
+	rr := httptest.NewRecorder()
+
+	handler.CreateURL(rr, request)
+
+	testutil.CheckStatusCode(t, rr, http.StatusBadRequest)
+	testutil.CheckContentType(t, rr, "application/json")
+
+	responseBody := testutil.DecodeJSON[response.ErrorResponse](t, rr.Body)
+	expectedError := "validation failed: " + servicePackage.ErrInvalidURL.Error()
+	if responseBody.Error != expectedError {
+		t.Errorf(
+			"expected error %q, got %q",
+			expectedError,
+			responseBody.Error,
+		)
+	}
+}
+
+func TestHandler_CreateURL_ServiceError(t *testing.T) {
+	mockService := &mockService{
+		saveURL: func(string) (string, error) {
+			return "", errors.New("database error")
+		},
+	}
+
+	handler := NewHandler(mockService)
+
+	body := bytes.NewBufferString(`{"url":"https://google.com"}`)
+	request := httptest.NewRequest(http.MethodPost, "/url", body)
+	rr := httptest.NewRecorder()
+
+	handler.CreateURL(rr, request)
+
+	testutil.CheckStatusCode(t, rr, http.StatusInternalServerError)
+	testutil.CheckContentType(t, rr, "application/json")
+
+	responseBody := testutil.DecodeJSON[response.ErrorResponse](t, rr.Body)
+	if responseBody.Error != response.ErrorInternalServer {
+		t.Errorf(
+			"expected error %q, got %q",
+			response.ErrorInternalServer,
+			responseBody.Error,
+		)
+	}
+}

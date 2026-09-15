@@ -39,7 +39,7 @@ func (h *Handler) AllURLs(w http.ResponseWriter, r *http.Request) {
 	urls, err := h.service.GetAllURLs()
 	if err != nil {
 		response.WriteJSON(w, http.StatusInternalServerError, response.ErrorResponse{
-			Error: "internal server error",
+			Error: response.ErrorInternalServer,
 		})
 		return
 	}
@@ -55,7 +55,7 @@ func (h *Handler) CreateURL(w http.ResponseWriter, r *http.Request) {
 	err := json.NewDecoder(r.Body).Decode(&request)
 	if err != nil {
 		response.WriteJSON(w, http.StatusBadRequest, response.ErrorResponse{
-			Error: "invalid request body",
+			Error: response.ErrorInvalidRequestBody,
 		})
 		return
 	}
@@ -71,7 +71,7 @@ func (h *Handler) CreateURL(w http.ResponseWriter, r *http.Request) {
 		}
 
 		response.WriteJSON(w, http.StatusInternalServerError, response.ErrorResponse{
-			Error: "internal server error",
+			Error: response.ErrorInternalServer,
 		})
 		return
 	}
