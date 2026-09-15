@@ -35,7 +35,7 @@ func NewHandler(service Service) *Handler {
 	}
 }
 
-func (h *Handler) AllURLs(w http.ResponseWriter, r *http.Request) {
+func (h *Handler) AllURLs(w http.ResponseWriter, _ *http.Request) {
 	urls, err := h.service.GetAllURLs()
 	if err != nil {
 		response.WriteJSON(w, http.StatusInternalServerError, response.ErrorResponse{
