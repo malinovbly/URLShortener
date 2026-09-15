@@ -2,6 +2,7 @@ package service
 
 import (
 	"URLShortener/internal/storage/memory"
+	"errors"
 	"strings"
 	"testing"
 )
@@ -90,6 +91,80 @@ func TestService_SaveURL_TrimsSpaces(t *testing.T) {
 
 	if url != expectedURL {
 		t.Errorf("expected trimmed URL, got %q", url)
+	}
+}
+
+func TestService_SaveURL_AliasCollision(t *testing.T) {
+	storage := memory.NewStorage()
+	service := NewService(storage)
+
+	aliases := []string{
+		"abc123",
+		"xyz789",
+	}
+
+	service.generateAlias = func() (string, error) {
+		alias := aliases[0]
+		aliases = aliases[1:]
+
+		return alias, nil
+	}
+
+	_, err := storage.SaveURL("abc123", "https://google.com")
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+
+	alias, err := service.SaveURL("https://github.com")
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+
+	if alias != "xyz789" {
+		t.Errorf("expected alias %q, got %q", "xyz789", alias)
+	}
+
+	url, err := service.GetURL("abc123")
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+
+	if url != "https://google.com" {
+		t.Errorf("expected original URL, got %q", url)
+	}
+}
+
+func TestService_SaveURL_ExistingURL(t *testing.T) {
+	service := makeService()
+
+	originalURL := "https://google.com"
+
+	alias1, err := service.SaveURL(originalURL)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+
+	alias2, err := service.SaveURL(originalURL)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+
+	if alias1 != alias2 {
+		t.Errorf("expected same alias %q, got %q", alias1, alias2)
+	}
+}
+
+func TestService_SaveURL_AliasGenerationError(t *testing.T) {
+	service := makeService()
+
+	service.generateAlias = func() (string, error) {
+		return "", errors.New("generation failed")
+	}
+
+	_, err := service.SaveURL("https://google.com")
+
+	if err == nil {
+		t.Fatal("expected error, got nil")
 	}
 }
 

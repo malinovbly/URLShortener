@@ -3,6 +3,7 @@ package service
 import (
 	"URLShortener/internal/storage"
 	"crypto/rand"
+	"errors"
 	"fmt"
 	"math/big"
 	"net"
@@ -16,34 +17,42 @@ const (
 )
 
 type Service struct {
-	storage storage.Storage
+	storage       storage.Storage
+	generateAlias func() (string, error)
 }
 
 func NewService(storage storage.Storage) *Service {
 	return &Service{
-		storage: storage,
+		storage:       storage,
+		generateAlias: generateAlias,
 	}
 }
 
 func (s *Service) SaveURL(originalURL string) (string, error) {
 	originalURL = strings.TrimSpace(originalURL)
 
-	err := validateURL(originalURL)
-	if err != nil {
+	if err := validateURL(originalURL); err != nil {
 		return "", err
 	}
 
-	alias, err := generateAlias()
-	if err != nil {
+	for {
+		alias, err := s.generateAlias()
+		if err != nil {
+			return "", err
+		}
+
+		savedAlias, err := s.storage.SaveURL(alias, originalURL)
+		if err == nil {
+			return savedAlias, err
+		}
+
+		if errors.Is(err, storage.ErrAliasAlreadyExists) {
+			continue
+		}
+
 		return "", err
 	}
 
-	savedAlias, err := s.storage.SaveURL(alias, originalURL)
-	if err != nil {
-		return "", err
-	}
-
-	return savedAlias, nil
 }
 
 func (s *Service) GetURL(alias string) (string, error) {

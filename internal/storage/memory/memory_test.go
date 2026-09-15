@@ -3,6 +3,8 @@ package memory
 import (
 	storagePackage "URLShortener/internal/storage"
 	"errors"
+	"fmt"
+	"sync"
 	"testing"
 )
 
@@ -201,4 +203,35 @@ func TestStorage_GetAllURLs_NewStorageIsEmpty(t *testing.T) {
 	if len(urls) != 0 {
 		t.Errorf("expected 0 URLs, got %d", len(urls))
 	}
+}
+
+func TestStorage_ConcurrentAccess(t *testing.T) {
+	storage := NewStorage()
+
+	const goroutines = 100
+
+	var wg sync.WaitGroup
+	wg.Add(goroutines)
+
+	for i := range goroutines {
+		go func(i int) {
+			defer wg.Done()
+
+			alias := fmt.Sprintf("alias%d", i)
+			url := fmt.Sprintf("https://example%d.com", i)
+
+			_, err := storage.SaveURL(alias, url)
+			if err != nil {
+				t.Errorf("unexpected error: %v", err)
+				return
+			}
+
+			_, err = storage.GetURL(alias)
+			if err != nil {
+				t.Errorf("unexpected error: %v", err)
+			}
+		}(i)
+	}
+
+	wg.Wait()
 }
