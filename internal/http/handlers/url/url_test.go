@@ -10,12 +10,14 @@ import (
 	"fmt"
 	"net/http"
 	"net/http/httptest"
+	"reflect"
 	"strings"
 	"testing"
 )
 
 type mockService struct {
-	saveURL func(string) (string, error)
+	saveURL    func(string) (string, error)
+	getAllURLs func() (map[string]string, error)
 }
 
 func (m *mockService) SaveURL(originalURL string) (string, error) {
@@ -23,7 +25,7 @@ func (m *mockService) SaveURL(originalURL string) (string, error) {
 }
 
 func (m *mockService) GetAllURLs() (map[string]string, error) {
-	return nil, nil
+	return m.getAllURLs()
 }
 
 func TestHandler_CreateURL_Valid(t *testing.T) {
@@ -123,6 +125,67 @@ func TestHandler_CreateURL_ServiceError(t *testing.T) {
 	testutil.CheckContentType(t, rr, "application/json")
 
 	responseBody := testutil.DecodeJSON[response.ErrorResponse](t, rr.Body)
+	if responseBody.Error != response.ErrorInternalServer {
+		t.Errorf(
+			"expected error %q, got %q",
+			response.ErrorInternalServer,
+			responseBody.Error,
+		)
+	}
+}
+
+func TestHandler_AllURLs_Valid(t *testing.T) {
+	expectedURLs := map[string]string{
+		"abc123": "https://google.com",
+		"xyz789": "https://github.com",
+	}
+
+	mockService := &mockService{
+		getAllURLs: func() (map[string]string, error) {
+			return expectedURLs, nil
+		},
+	}
+
+	handler := NewHandler(mockService)
+
+	request := httptest.NewRequest(http.MethodGet, "/urls", nil)
+	rr := httptest.NewRecorder()
+
+	handler.AllURLs(rr, request)
+
+	testutil.CheckStatusCode(t, rr, http.StatusOK)
+	testutil.CheckContentType(t, rr, "application/json")
+
+	responseBody := testutil.DecodeJSON[AllURLsResponse](t, rr.Body)
+
+	if !reflect.DeepEqual(responseBody.URLs, expectedURLs) {
+		t.Errorf(
+			"expected URLs %v, got %v",
+			expectedURLs,
+			responseBody.URLs,
+		)
+	}
+}
+
+func TestHandler_AllURLs_ServiceError(t *testing.T) {
+	mockService := &mockService{
+		getAllURLs: func() (map[string]string, error) {
+			return nil, errors.New("database error")
+		},
+	}
+
+	handler := NewHandler(mockService)
+
+	request := httptest.NewRequest(http.MethodGet, "/urls", nil)
+	rr := httptest.NewRecorder()
+
+	handler.AllURLs(rr, request)
+
+	testutil.CheckStatusCode(t, rr, http.StatusInternalServerError)
+	testutil.CheckContentType(t, rr, "application/json")
+
+	responseBody := testutil.DecodeJSON[response.ErrorResponse](t, rr.Body)
+
 	if responseBody.Error != response.ErrorInternalServer {
 		t.Errorf(
 			"expected error %q, got %q",
