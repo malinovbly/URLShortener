@@ -44,6 +44,7 @@ func TestHandler_CreateURL_Valid(t *testing.T) {
 	testutil.CheckContentType(t, rr, "application/json")
 
 	responseBody := testutil.DecodeJSON[CreateURLResponse](t, rr.Body)
+
 	if responseBody.Alias == "" {
 		t.Error("expected alias, got empty")
 	}
@@ -65,13 +66,8 @@ func TestHandler_CreateURL_InvalidJSON(t *testing.T) {
 	testutil.CheckContentType(t, rr, "application/json")
 
 	responseBody := testutil.DecodeJSON[response.ErrorResponse](t, rr.Body)
-	if responseBody.Error != response.ErrorInvalidRequestBody {
-		t.Errorf(
-			"expected error %q, got %q",
-			response.ErrorInvalidRequestBody,
-			responseBody.Error,
-		)
-	}
+
+	testutil.CheckError(t, responseBody, response.ErrorInvalidRequestBody)
 }
 
 func TestHandler_CreateURL_InvalidURL(t *testing.T) {
@@ -97,13 +93,8 @@ func TestHandler_CreateURL_InvalidURL(t *testing.T) {
 
 	responseBody := testutil.DecodeJSON[response.ErrorResponse](t, rr.Body)
 	expectedError := "validation failed: " + servicePackage.ErrInvalidURL.Error()
-	if responseBody.Error != expectedError {
-		t.Errorf(
-			"expected error %q, got %q",
-			expectedError,
-			responseBody.Error,
-		)
-	}
+
+	testutil.CheckError(t, responseBody, expectedError)
 }
 
 func TestHandler_CreateURL_ServiceError(t *testing.T) {
@@ -125,13 +116,8 @@ func TestHandler_CreateURL_ServiceError(t *testing.T) {
 	testutil.CheckContentType(t, rr, "application/json")
 
 	responseBody := testutil.DecodeJSON[response.ErrorResponse](t, rr.Body)
-	if responseBody.Error != response.ErrorInternalServer {
-		t.Errorf(
-			"expected error %q, got %q",
-			response.ErrorInternalServer,
-			responseBody.Error,
-		)
-	}
+
+	testutil.CheckError(t, responseBody, response.ErrorInternalServer)
 }
 
 func TestHandler_AllURLs_Valid(t *testing.T) {
@@ -186,11 +172,5 @@ func TestHandler_AllURLs_ServiceError(t *testing.T) {
 
 	responseBody := testutil.DecodeJSON[response.ErrorResponse](t, rr.Body)
 
-	if responseBody.Error != response.ErrorInternalServer {
-		t.Errorf(
-			"expected error %q, got %q",
-			response.ErrorInternalServer,
-			responseBody.Error,
-		)
-	}
+	testutil.CheckError(t, responseBody, response.ErrorInternalServer)
 }
