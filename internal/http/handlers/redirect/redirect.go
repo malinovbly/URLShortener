@@ -21,6 +21,17 @@ func NewHandler(service Service) *Handler {
 	}
 }
 
+// Redirect GoDoc
+//
+//	@Summary		Redirect to original URL
+//	@Description	Redirects the client using the specified URL alias.
+//	@Tags			URL
+//	@Produce		json
+//	@Param			alias	path	string	true	"URL alias"
+//	@Success		302
+//	@Failure		404	{object}	response.ErrorResponse
+//	@Failure		500	{object}	response.ErrorResponse
+//	@Router			/{alias} [get]
 func (h *Handler) Redirect(w http.ResponseWriter, r *http.Request) {
 	alias := r.PathValue("alias")
 
@@ -28,7 +39,7 @@ func (h *Handler) Redirect(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		if errors.Is(err, storage.ErrURLNotFound) {
 			response.WriteJSON(w, http.StatusNotFound, response.ErrorResponse{
-				Error: err.Error(),
+				Error: "url not found",
 			})
 			return
 		}

@@ -1,0 +1,104 @@
+basePath: /
+definitions:
+  response.ErrorResponse:
+    properties:
+      error:
+        type: string
+    type: object
+  url.AllURLsResponse:
+    properties:
+      urls:
+        additionalProperties:
+          type: string
+        type: object
+    type: object
+  url.CreateURLRequest:
+    properties:
+      url:
+        type: string
+    type: object
+  url.CreateURLResponse:
+    properties:
+      alias:
+        type: string
+    type: object
+host: localhost:8080
+info:
+  contact: {}
+  description: A URL shortening service API.
+  title: URLShortener API
+  version: "1.0"
+paths:
+  /{alias}:
+    get:
+      description: Redirects the client using the specified URL alias.
+      parameters:
+      - description: URL alias
+        in: path
+        name: alias
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "302":
+          description: Found
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/response.ErrorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/response.ErrorResponse'
+      summary: Redirect to original URL
+      tags:
+      - URL
+  /url:
+    post:
+      consumes:
+      - application/json
+      description: Creates an alias for the specified URL.
+      parameters:
+      - description: Original URL
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/url.CreateURLRequest'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            $ref: '#/definitions/url.CreateURLResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/response.ErrorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/response.ErrorResponse'
+      summary: Create short URL
+      tags:
+      - URL
+  /urls:
+    get:
+      description: Returns all saved URLs.
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/url.AllURLsResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/response.ErrorResponse'
+      summary: Get all URLs
+      tags:
+      - URL
+swagger: "2.0"

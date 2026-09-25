@@ -35,6 +35,15 @@ func NewHandler(service Service) *Handler {
 	}
 }
 
+// AllURLs GoDoc
+//
+//	@Summary		Get all URLs
+//	@Description	Returns all saved URLs.
+//	@Tags			URL
+//	@Produce		json
+//	@Success		200	{object}	AllURLsResponse
+//	@Failure		500	{object}	response.ErrorResponse
+//	@Router			/urls [get]
 func (h *Handler) AllURLs(w http.ResponseWriter, _ *http.Request) {
 	urls, err := h.service.GetAllURLs()
 	if err != nil {
@@ -49,6 +58,18 @@ func (h *Handler) AllURLs(w http.ResponseWriter, _ *http.Request) {
 	})
 }
 
+// CreateURL GoDoc
+//
+//	@Summary		Create short URL
+//	@Description	Creates an alias for the specified URL.
+//	@Tags			URL
+//	@Accept			json
+//	@Produce		json
+//	@Param			request	body		CreateURLRequest	true	"Original URL"
+//	@Success		201		{object}	CreateURLResponse
+//	@Failure		400		{object}	response.ErrorResponse
+//	@Failure		500		{object}	response.ErrorResponse
+//	@Router			/url [post]
 func (h *Handler) CreateURL(w http.ResponseWriter, r *http.Request) {
 	var request CreateURLRequest
 

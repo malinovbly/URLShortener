@@ -21,7 +21,7 @@ type PostgresConfig struct {
 func Load() (*Config, error) {
 	var cfg Config
 
-	if err := cleanenv.ReadConfig(".env", &cfg); err != nil {
+	if err := cleanenv.ReadEnv(&cfg); err != nil {
 		return nil, fmt.Errorf("failed to load config: %w", err)
 	}
 

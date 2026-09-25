@@ -166,7 +166,7 @@ func newTestStorage(t *testing.T) *Storage {
 		Port:     "5432",
 		User:     "postgres",
 		Password: "postgres",
-		DBName:   "urlshortener",
+		DBName:   "url_shortener",
 	}
 
 	storage, err := NewStorage(cfg)
@@ -174,7 +174,11 @@ func newTestStorage(t *testing.T) *Storage {
 		t.Fatalf("failed to create storage: %v", err)
 	}
 
-	t.Cleanup(storage.Close)
+	t.Cleanup(func() {
+		if err := storage.Close(); err != nil {
+			t.Errorf("failed to close storage: %v", err)
+		}
+	})
 
 	clearDatabase(t, storage)
 

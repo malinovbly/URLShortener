@@ -74,11 +74,11 @@ func (s *Storage) GetURL(alias string) (string, error) {
 		Where("alias = ?", alias).
 		First(&url).Error
 
-	if errors.Is(err, gorm.ErrRecordNotFound) {
-		return "", storage.ErrURLNotFound
-	}
-
 	if err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return "", storage.ErrURLNotFound
+		}
+
 		return "", err
 	}
 
@@ -101,11 +101,13 @@ func (s *Storage) GetAllURLs() (map[string]string, error) {
 	return urls, nil
 }
 
-func (s *Storage) Close() {
+func (s *Storage) Close() error {
 	sqlDB, err := s.db.DB()
-	if err == nil {
-		sqlDB.Close()
+	if err != nil {
+		return err
 	}
+
+	return sqlDB.Close()
 }
 
 func isUniqueViolation(err error) bool {

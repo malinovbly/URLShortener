@@ -15,6 +15,15 @@ A URL shortening service written in Go. Uses PostgreSQL for storing URLs.
 The service allows users to create short URLs and redirect users using an alias.
 
 
+## API
+
+| Method | Endpoint              | Description                  |
+|--------|-----------------------|------------------------------|
+| POST   | `/url`                | Create a short URL           |
+| GET    | `/urls`               | Get all saved URLs           |
+| GET    | `/{alias}`            | Redirect to the original URL |
+| GET    | `/swagger/index.html` | Swagger API documentation    |
+
 ## Configuration
 
 Create a `.env` file based on `.env.example`:
@@ -24,16 +33,6 @@ copy .env.example .env
 
 
 ## First Run
-
-Start PostgreSQL:
-```bash
-make up
-```
-
-Apply migrations:
-```bash
-make migrate-up
-```
 
 Start the application:
 ```bash
